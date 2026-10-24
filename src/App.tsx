@@ -3,11 +3,12 @@ import { Sigil } from "./components/Sigil";
 import { Timeline } from "./components/Timeline";
 import { ScenarioPanel } from "./components/ScenarioPanel";
 import { Inspector } from "./components/Inspector";
+import { ConversationPanel } from "./components/ConversationPanel";
 import { runtime, usePresence } from "./hooks/useRuntime";
 import { createEvent } from "./runtime/events";
 import { PRESENCE_META } from "./runtime/presenceStates";
 
-type Tab = "scenarios" | "timeline" | "inspector";
+type Tab = "conversation" | "scenarios" | "timeline" | "inspector";
 
 function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI__" in window;
@@ -26,8 +27,7 @@ async function win(cmd: "minimize" | "close") {
 
 export default function App() {
   const state = usePresence();
-  const [tab, setTab] = useState<Tab>("scenarios");
-  const [expanded, setExpanded] = useState(true);
+  const [tab, setTab] = useState<Tab>("conversation");
   const [tick, setTick] = useState(0);
   const poke = useCallback(() => setTick((t) => t + 1), []);
   const meta = PRESENCE_META[state];
@@ -38,9 +38,6 @@ export default function App() {
   // Keyboard-accessible core controls.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "i" && !e.ctrlKey && !e.metaKey && (e.target as HTMLElement)?.tagName !== "INPUT") {
-        setExpanded((v) => !v);
-      }
       if (e.key === "r" && !e.ctrlKey && !e.metaKey && (e.target as HTMLElement)?.tagName !== "INPUT") {
         runtime.process(createEvent("reset", "user"));
         runtime.reset();
@@ -54,9 +51,9 @@ export default function App() {
   return (
     <div className="app">
       <div className="titlebar" data-tauri-drag-region={isTauri() ? true : undefined}>
-        <span className="drag">RAPHAEL · PRESENCE RUNTIME v0.1</span>
+        <span className="drag">RAPHAEL · PRESENCE RUNTIME v0.2</span>
         <div className="winbtns">
-          <button className="winbtn" aria-label="Toggle inspector" title="Toggle inspector (I)" onClick={() => setExpanded((v) => !v)}>
+          <button className="winbtn" aria-label="Toggle inspector" title="Toggle inspector (I)" onClick={() => setTab("inspector")}>
             ◫
           </button>
           {isTauri() && (
@@ -78,28 +75,25 @@ export default function App() {
           <div className="state-desc">{meta.description}</div>
         </section>
 
-        {expanded && (
-          <aside className="inspector" aria-label="Diagnostic inspector">
-            <div className="tabs" role="tablist">
-              {(["scenarios", "timeline", "inspector"] as Tab[]).map((t) => (
-                <button
-                  key={t}
-                  role="tab"
-                  aria-selected={tab === t}
-                  className="tab"
-                  onClick={() => setTab(t)}
-                >
-                  {t === "scenarios" ? "Scenarios" : t === "timeline" ? "Timeline" : "Inspector"}
-                </button>
-              ))}
-            </div>
-            <div className="tabpane" role="tabpanel">
-              {tab === "scenarios" && <ScenarioPanel onActivity={poke} />}
-              {tab === "timeline" && <Timeline tick={tick} />}
-              {tab === "inspector" && <Inspector tick={tick} />}
-            </div>
-          </aside>
-        )}
+        <div className="tabs" role="tablist">
+          {(["conversation", "scenarios", "timeline", "inspector"] as Tab[]).map((t) => (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={tab === t}
+              className="tab"
+              onClick={() => setTab(t)}
+            >
+              {t === "conversation" ? "Conversation" : t === "scenarios" ? "Scenarios" : t === "timeline" ? "Timeline" : "Inspector"}
+            </button>
+          ))}
+        </div>
+        <div className="tabpane" role="tabpanel">
+          {tab === "conversation" && <ConversationPanel />}
+          {tab === "scenarios" && <ScenarioPanel onActivity={poke} />}
+          {tab === "timeline" && <Timeline tick={tick} />}
+          {tab === "inspector" && <Inspector tick={tick} />}
+        </div>
       </div>
 
       <div className="footerbar">
